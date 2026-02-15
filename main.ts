@@ -1,51 +1,63 @@
-/**
- * === MAIN LOGIC ===
- */
+// === CONFIG ===
+const LUMINOSITY_THRESHOLD = 50
+const PIR_PIN = DigitalPin.P0
+const IR_PIN = DigitalPin.P1
+
 // === UTILS ===
-function switchOnLEDs () {
+function switchOnLEDs() {
     basic.showLeds(`
         # # # # #
         # # # # #
         # # # # #
         # # # # #
         # # # # #
-        `)
-    basic.pause(30000)
+    `)
+    basic.pause(100)
 }
-function switchOffLEDs () {
+
+function switchOffLEDs() {
     basic.clearScreen()
 }
-function checkIR () {
+
+function checkIR(): boolean {
     return pins.digitalReadPin(IR_PIN) == 1
 }
-function checkLum () {
+
+function checkLum(): boolean {
     return input.lightLevel() < LUMINOSITY_THRESHOLD
 }
-function checkPIR () {
+
+function checkPIR(): boolean {
     return pins.digitalReadPin(PIR_PIN) == 1
 }
-function isButtonAPressed () {
-    // Corrigé : Button.A directement
-    return input.buttonIsPressed(Button.A)
+
+function isButtonAPressed(): boolean {
+    return input.buttonIsPressed(Button.A)  // Corrigé : Button.A directement
 }
-let IR_PIN = 0
-let PIR_PIN = 0
-let LUMINOSITY_THRESHOLD = 0
-// === CONFIG ===
-LUMINOSITY_THRESHOLD = 50
-PIR_PIN = DigitalPin.P0
-IR_PIN = DigitalPin.P1
-// Plus propre que de déclarer une fonction anonyme
-basic.forever(function () {
+
+// === MAIN LOGIC ===
+function main() {
     // Priorité au bouton A (override les capteurs)
-    // Sinon, vérifier les capteurs
     if (isButtonAPressed()) {
         switchOnLEDs()
-    } else if (checkPIR() && checkIR() && checkLum()) {
+    }
+    // Sinon, vérifier les capteurs
+    else if (checkPIR() && checkIR() && checkLum()) {
         switchOnLEDs()
     } else {
         switchOffLEDs()
     }
-    let ledState = isButtonAPressed() || checkPIR() && checkIR() && checkLum() ? 1 : 0
-dashboard.send_dashboard(1, ledState, input.lightLevel(), checkPIR() ? 1 : 0, checkIR() ? 1 : 0)
-})
+
+    // Mise à jour du dashboard (à appeller APRES les checks)
+    const ledState = (isButtonAPressed() || (checkPIR() && checkIR() && checkLum())) ? 1 : 0
+    dashboard.send_dashboard(
+        1,  // radio_grp
+        ledState,
+        input.lightLevel(),
+        checkPIR() ? 1 : 0,
+        checkIR() ? 1 : 0
+    )
+}
+
+// === BOUCLE PRINCIPALE ===
+basic.forever(main)  // Plus propre que de déclarer une fonction anonyme
